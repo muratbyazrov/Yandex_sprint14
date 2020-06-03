@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     },
   },
   /* !Пароль должен быть не меньше 8 символов. Но сейчас при сохранении в базу пароль хешируется,
-  а потому можно задавать пароль менее 8 символов. Этот бак надо исправить. */
+  а потому можно задавать пароль менее 8 символов. Этот баг надо исправить. */
   password: {
     type: String,
     required: true,
@@ -57,7 +57,8 @@ const userSchema = new mongoose.Schema({
 который записан у найденного пользовталея. Для этого используется метод compare */
 // eslint-disable-next-line func-names
 userSchema.statics.findUserByCredentials = function (email, password) {
-  return this.findOne({ email }).select('+password')
+  return this.findOne({ email })
+    .select('+password')
     .then((user) => {
       if (!user) {
         return Promise.reject(new Error('Неправильные почта или пароль!'));

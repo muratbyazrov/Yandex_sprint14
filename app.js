@@ -1,11 +1,32 @@
 // Подключили библиотеку экспресс
 const express = require('express');
 
+/* Этот пакет позволяет загружать пересменные из файла с расширением env,
+где хранят переменную с секретым ключом. После этого env-переменные
+из файла добавятся в process.env */
+require('dotenv').config();
+
 // mongoos - это некий сопоставитель, который помогает подружить JS с документами в MongoDB
 const mongoose = require('mongoose');
 
 // Этот модуль объединяет приходящие пакеты из запросв. Они доступны так: const { body } = req;
 const bodyParser = require('body-parser');
+
+// Это модуль модуль нужен для безопасности https://expressjs.com/ru/advanced/best-practice-security.html
+const helmet = require('helmet');
+
+/* Этот модуль так же для безопасности, а миенно Для защиты от DDoS.
+Материалы:
+https://medium.com/webbdev/23-рекомендации-по-защите-node-js-приложений-e3fbc348f92
+https://www.npmjs.com/package/express-rate-limit
+*/
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+
 
 // Подключили роуты
 const usersRouter = require('./routes/usersRout');
@@ -14,6 +35,11 @@ const cardsRouter = require('./routes/cardsRout');
 
 // Так мы создали приложение на экспресс
 const app = express();
+
+// Лучше поставить helmet в начале как мидлвэр. Тогда все запросы будут проходить через него
+app.use(helmet());
+
+app.use(limiter);
 
 /* В Node есть переменные окружения. Достать их можно из объекта process.env.
 В частности, есть переменная PORT. Все переменные окружения пишут с заглавных букв */
