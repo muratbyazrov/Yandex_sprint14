@@ -19,17 +19,20 @@ module.exports.createCard = (req, res) => {
 };
 
 /* обработчик для удаления карточек. Если карточки по переданному ID нет, то mongoos по
-умолчанию отправлет {null}. Чтобы обыграть эот, используем условную конструкцию.
+умолчанию отправлет {null}. Чтобы исправить это, используем сначала findById, потому что
 orFail почему-то не работает на методе findByIdAndRemove.
 !Почему с использованием asinc await - надо проверить. Попробовать убрать. */
 module.exports.deleteCard = async (req, res) => {
-  await Cards.findByIdAndRemove(req.params.cardId)
+  await Cards.findById(req.params.cardId)
+    .orFail(new Error('Нет такой карточки'))
     .then((card) => {
-      if (card === null) {
-        res.status(404).send({ message: 'Такой карточки нет' });
-      } else {
-        res.send({ data: card });
+      if (JSON.stringify(card.owner) !== JSON.stringify(req.user._id)) {
+        return res
+          .status(403)
+          .send({ message: 'Это не ваша карточка' });
       }
+      res.send({ data: card });
+      return card.remove();
     })
-    .catch((err) => res.status(404).send({ message: err.message }));
+    .catch((err) => res.status(500).send({ message: err.message }));
 };

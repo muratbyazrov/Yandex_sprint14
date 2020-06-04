@@ -24,7 +24,7 @@ module.exports.getUserById = async (req, res) => {
   await User.findById(req.params.id)
     .orFail(new Error('Нет такого пользователя'))
     .then((user) => res.send({ data: user }))
-    .catch((err) => res.status(404).send({ message: err.message }));
+    .catch((err) => res.status(500).send({ message: err.message }));
 };
 
 /* Обработчик, который создает пользователей по разработанной схеме User. Для этого сначала
@@ -39,7 +39,9 @@ module.exports.createUser = (req, res) => {
       User.create({
         name, about, avatar, email, password: hash,
       })
-        .then((user) => res.send({ data: user }))
+        .then((user) => res.send({
+          name: user.name, about: user.about, avatar: user.avatar, email: user.email,
+        }))
         .catch((err) => res.status(400).send({ message: err.message }));
     });
 };
@@ -47,8 +49,8 @@ module.exports.createUser = (req, res) => {
 
 /*
 ***Этот обработчик принимает пароль и логин и пытается авторизовать пользователя
-***findUserByCredentials - это статический метож, который мы создали для проверки
-логина и пароля. Если логин или пароль окахываются неправильными. выдаем ошибку.
+***findUserByCredentials - это статический метод, который мы создали для проверки
+логина и пароля. Если логин или пароль оказываются неправильными, выдаем ошибку.
 Если верно, то создаем токен методом sign сроком 7 дней. Токен мы зыписываем в куки
 для безопасности приложения, так как в куки у JS нет доступа.
 ***Если метод findUserByCredentials вернул пользователя(то есть логин и пароль правильные),
@@ -60,12 +62,13 @@ module.exports.createUser = (req, res) => {
 ключ и значение ключа jwt:token. Так же ожно задать максимальный срок жизни.
 Чтобы по умолчанию к кукам не было домтупа из JS, включают опцию httpOnly: true
 */
+
 module.exports.login = (req, res) => {
   const { email, password } = req.body;
-
+  const { JWT_SECRET } = process.env;
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, { expiresIn: '7d' });
       res
         .cookie('jwt', token, {
           maxAge: 86400 * 7,
